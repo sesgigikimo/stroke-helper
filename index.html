@@ -330,7 +330,7 @@
         .quiz-feedback.correct { color: #50C878; }
         .quiz-feedback.mistake { color: #E74C3C; }
 
-        /* Responsive */
+        /* Responsive - tablet */
         @media (max-width: 700px) {
             .main-content {
                 flex-direction: column;
@@ -339,6 +339,51 @@
             .right-panel { width: 100%; }
             .grid-wrapper { width: 260px; height: 260px; }
             .grid-controls, .speed-row { width: 260px; }
+        }
+
+        /* Responsive - phone portrait */
+        @media (max-width: 430px) {
+            .top-row {
+                gap: 8px;
+            }
+            .grid-wrapper {
+                width: 240px;
+                height: 240px;
+            }
+            .grid-controls, .speed-row {
+                width: 240px;
+            }
+            .grid-controls {
+                gap: 6px;
+            }
+            .nav-btn {
+                width: 34px;
+                height: 34px;
+                font-size: 14px;
+            }
+            .action-btn {
+                padding: 8px 10px;
+                font-size: 12px;
+            }
+            .stroke-breakdown {
+                flex: 0 0 56px;
+                padding: 6px 3px;
+                max-height: 340px;
+            }
+            .stroke-step {
+                width: 46px;
+                height: 46px;
+            }
+            .char-bar {
+                gap: 2px;
+                padding: 8px 10px;
+            }
+            .char-bar .char-item {
+                width: 36px;
+                height: 46px;
+                font-size: 18px;
+            }
+            .input-row input { font-size: 16px; }
         }
     </style>
 </head>
