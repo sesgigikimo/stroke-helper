@@ -532,42 +532,42 @@
             const bar = document.getElementById('charBar');
             bar.innerHTML = '';
 
-            // Chinese chars (clickable)
-            charList.forEach((ch, i) => {
-                const div = document.createElement('div');
-                div.className = 'char-item' + (i === currentIndex ? ' active' : '');
-                const py = typeof pinyinPro !== 'undefined' ? pinyinPro.pinyin(ch) : '';
-                div.innerHTML = `<span class="char-pinyin">${py}</span>${ch}`;
-                div.onclick = () => { currentIndex = i; updateDisplay(); };
-                bar.appendChild(div);
-            });
-
-            // Non-CJK chunks (grayed out, non-clickable)
             const input = document.getElementById('userInput').value.trim();
+            const seenCJK = new Set();
             const seenChunks = new Set();
             let chunk = '';
+
+            const flushChunk = () => {
+                if (chunk && !seenChunks.has(chunk)) {
+                    seenChunks.add(chunk);
+                    const div = document.createElement('div');
+                    div.className = 'char-item non-cjk';
+                    div.innerHTML = `<span class="char-pinyin">無筆順</span>${chunk}`;
+                    bar.appendChild(div);
+                }
+                chunk = '';
+            };
+
             for (const ch of input) {
-                if (isCJK(ch) || /\s/.test(ch)) {
-                    if (chunk) {
-                        if (!seenChunks.has(chunk)) {
-                            seenChunks.add(chunk);
-                            const div = document.createElement('div');
-                            div.className = 'char-item non-cjk';
-                            div.innerHTML = `<span class="char-pinyin">無筆順</span>${chunk}`;
-                            bar.appendChild(div);
-                        }
-                        chunk = '';
+                if (isCJK(ch)) {
+                    flushChunk();
+                    if (!seenCJK.has(ch)) {
+                        seenCJK.add(ch);
+                        const i = charList.indexOf(ch);
+                        const div = document.createElement('div');
+                        div.className = 'char-item' + (i === currentIndex ? ' active' : '');
+                        const py = typeof pinyinPro !== 'undefined' ? pinyinPro.pinyin(ch) : '';
+                        div.innerHTML = `<span class="char-pinyin">${py}</span>${ch}`;
+                        div.onclick = () => { currentIndex = i; updateDisplay(); };
+                        bar.appendChild(div);
                     }
+                } else if (/\s/.test(ch)) {
+                    flushChunk();
                 } else {
                     chunk += ch;
                 }
             }
-            if (chunk && !seenChunks.has(chunk)) {
-                const div = document.createElement('div');
-                div.className = 'char-item non-cjk';
-                div.innerHTML = `<span class="char-pinyin">無筆順</span>${chunk}`;
-                bar.appendChild(div);
-            }
+            flushChunk();
         }
 
         function updateCharBar() {
