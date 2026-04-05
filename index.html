@@ -112,6 +112,15 @@
             margin-bottom: 2px;
         }
         .char-bar .char-item.active .char-pinyin { color: rgba(255,255,255,0.8); }
+        .char-bar .char-item.non-cjk {
+            opacity: 0.4;
+            cursor: default;
+            font-size: 13px;
+            min-width: 44px;
+            width: auto;
+            padding: 0 6px;
+        }
+        .char-bar .char-item.non-cjk:hover { background: none; }
 
         /* Main Content */
         #display-container { display: none; }
@@ -490,9 +499,13 @@
             document.getElementById('speedLabel').textContent = parseFloat(this.value).toFixed(1) + 'x';
         });
 
+        function isCJK(ch) {
+            return /[\u4e00-\u9fff\u3400-\u4dbf\uf900-\ufaff]/.test(ch);
+        }
+
         function startExercise() {
             const input = document.getElementById('userInput').value.trim();
-            charList = input.split('').filter(ch => /[\u4e00-\u9fa5]/.test(ch));
+            charList = input.split('').filter(isCJK);
             // Deduplicate while preserving order
             charList = [...new Set(charList)];
 
@@ -518,6 +531,8 @@
         function buildCharBar() {
             const bar = document.getElementById('charBar');
             bar.innerHTML = '';
+
+            // Chinese chars (clickable)
             charList.forEach((ch, i) => {
                 const div = document.createElement('div');
                 div.className = 'char-item' + (i === currentIndex ? ' active' : '');
@@ -526,6 +541,33 @@
                 div.onclick = () => { currentIndex = i; updateDisplay(); };
                 bar.appendChild(div);
             });
+
+            // Non-CJK chunks (grayed out, non-clickable)
+            const input = document.getElementById('userInput').value.trim();
+            const seenChunks = new Set();
+            let chunk = '';
+            for (const ch of input) {
+                if (isCJK(ch) || /\s/.test(ch)) {
+                    if (chunk) {
+                        if (!seenChunks.has(chunk)) {
+                            seenChunks.add(chunk);
+                            const div = document.createElement('div');
+                            div.className = 'char-item non-cjk';
+                            div.innerHTML = `<span class="char-pinyin">無筆順</span>${chunk}`;
+                            bar.appendChild(div);
+                        }
+                        chunk = '';
+                    }
+                } else {
+                    chunk += ch;
+                }
+            }
+            if (chunk && !seenChunks.has(chunk)) {
+                const div = document.createElement('div');
+                div.className = 'char-item non-cjk';
+                div.innerHTML = `<span class="char-pinyin">無筆順</span>${chunk}`;
+                bar.appendChild(div);
+            }
         }
 
         function updateCharBar() {
