@@ -533,23 +533,8 @@
             bar.innerHTML = '';
 
             const input = document.getElementById('userInput').value.trim();
-            const seenChunks = new Set();
-            let chunk = '';
-
-            const flushChunk = () => {
-                if (chunk && !seenChunks.has(chunk)) {
-                    seenChunks.add(chunk);
-                    const div = document.createElement('div');
-                    div.className = 'char-item non-cjk';
-                    div.innerHTML = `<span class="char-pinyin">無筆順</span>${chunk}`;
-                    bar.appendChild(div);
-                }
-                chunk = '';
-            };
-
             for (const ch of input) {
                 if (isCJK(ch)) {
-                    flushChunk();
                     const i = charList.indexOf(ch);
                     const div = document.createElement('div');
                     div.className = 'char-item' + (i === currentIndex ? ' active' : '');
@@ -557,13 +542,13 @@
                     div.innerHTML = `<span class="char-pinyin">${py}</span>${ch}`;
                     div.onclick = () => { currentIndex = i; updateDisplay(); };
                     bar.appendChild(div);
-                } else if (/\s/.test(ch)) {
-                    flushChunk();
-                } else {
-                    chunk += ch;
+                } else if (!(/\s/.test(ch))) {
+                    const div = document.createElement('div');
+                    div.className = 'char-item non-cjk';
+                    div.innerHTML = `<span class="char-pinyin">&nbsp;</span>${ch}`;
+                    bar.appendChild(div);
                 }
             }
-            flushChunk();
         }
 
         function updateCharBar() {
@@ -803,6 +788,6 @@
             }
         }
     </script>
-    <div style="text-align:center;padding:20px;font-size:11px;color:#bbb;">v1.5</div>
+    <div style="text-align:center;padding:20px;font-size:11px;color:#bbb;">v1.6</div>
 </body>
 </html>
