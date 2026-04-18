@@ -77,6 +77,52 @@
         }
         .input-row button:hover { background: #357ABD; }
 
+        /* Resume last session */
+        #resume-area {
+            max-width: 600px;
+            margin: 16px auto 0;
+            padding: 0 10px;
+            display: none;
+        }
+        .resume-btn {
+            width: 100%;
+            padding: 14px 16px;
+            font-size: 15px;
+            background: #fff;
+            color: #4A90E2;
+            border: 2px dashed #4A90E2;
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: left;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            transition: background 0.15s;
+        }
+        .resume-btn:hover { background: #EAF3FC; }
+        .resume-btn .resume-label {
+            font-size: 12px;
+            color: #888;
+            display: block;
+            margin-bottom: 2px;
+        }
+        .resume-btn .resume-text {
+            font-size: 16px;
+            color: #333;
+            word-break: break-all;
+        }
+        .resume-btn .resume-clear {
+            background: none;
+            border: none;
+            color: #bbb;
+            font-size: 20px;
+            cursor: pointer;
+            padding: 0 6px;
+            flex-shrink: 0;
+        }
+        .resume-btn .resume-clear:hover { color: #E74C3C; }
+
         /* Character Bar */
         .char-bar {
             display: flex;
@@ -421,6 +467,15 @@
             <input type="text" id="userInput" placeholder="例：到圓山大飯店吃午餐" autofocus>
             <button onclick="startExercise()">開始練習</button>
         </div>
+        <div id="resume-area">
+            <div class="resume-btn" onclick="resumeSession()">
+                <div>
+                    <span class="resume-label">繼續上次的練習</span>
+                    <span class="resume-text" id="resumeText"></span>
+                </div>
+                <button class="resume-clear" onclick="event.stopPropagation(); clearSavedSession();" title="清除">&times;</button>
+            </div>
+        </div>
     </div>
 
     <div id="display-container">
@@ -490,6 +545,64 @@
         let isQuizMode = false;
         let dictCache = {};
 
+        const STORAGE_KEY = 'stroke-helper-session-v1';
+
+        function saveSession() {
+            if (charList.length === 0) return;
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify({
+                    sentence: document.getElementById('userInput').value,
+                    currentIndex,
+                    speed: parseFloat(document.getElementById('speedSlider').value),
+                    savedAt: Date.now(),
+                }));
+            } catch (e) {}
+        }
+
+        function loadSession() {
+            try {
+                const raw = localStorage.getItem(STORAGE_KEY);
+                if (!raw) return null;
+                const data = JSON.parse(raw);
+                if (!data.sentence) return null;
+                return data;
+            } catch (e) { return null; }
+        }
+
+        function clearSavedSession() {
+            try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
+            document.getElementById('resume-area').style.display = 'none';
+        }
+
+        function showResumePrompt() {
+            const data = loadSession();
+            const area = document.getElementById('resume-area');
+            if (!data) { area.style.display = 'none'; return; }
+            document.getElementById('resumeText').textContent = data.sentence;
+            area.style.display = 'block';
+        }
+
+        function resumeSession() {
+            const data = loadSession();
+            if (!data) return;
+            document.getElementById('userInput').value = data.sentence;
+            charList = data.sentence.split('').filter(isCJK);
+            charList = [...new Set(charList)];
+            if (charList.length === 0) return;
+            currentIndex = Math.min(data.currentIndex || 0, charList.length - 1);
+
+            const slider = document.getElementById('speedSlider');
+            slider.value = data.speed || 1;
+            document.getElementById('speedLabel').textContent = parseFloat(slider.value).toFixed(1) + 'x';
+
+            document.getElementById('input-area').style.display = 'none';
+            document.getElementById('display-container').style.display = 'block';
+            document.getElementById('backBtn').style.display = 'block';
+
+            buildCharBar();
+            updateDisplay();
+        }
+
         // Enter key to start
         document.getElementById('userInput').addEventListener('keydown', function(e) {
             if (e.key === 'Enter') startExercise();
@@ -498,6 +611,7 @@
         // Speed slider
         document.getElementById('speedSlider').addEventListener('input', function() {
             document.getElementById('speedLabel').textContent = parseFloat(this.value).toFixed(1) + 'x';
+            saveSession();
         });
 
         function isCJK(ch) {
@@ -519,6 +633,7 @@
 
             buildCharBar();
             updateDisplay();
+            saveSession();
         }
 
         function goBack() {
@@ -527,6 +642,7 @@
             document.getElementById('backBtn').style.display = 'none';
             if (writer) { writer = null; }
             document.getElementById('writer-target').innerHTML = '';
+            showResumePrompt();
         }
 
         function buildCharBar() {
@@ -542,7 +658,7 @@
                     div.dataset.charIdx = i;
                     const py = typeof pinyinPro !== 'undefined' ? pinyinPro.pinyin(ch) : '';
                     div.innerHTML = `<span class="char-pinyin">${py}</span>${ch}`;
-                    div.onclick = () => { currentIndex = i; updateDisplay(); };
+                    div.onclick = () => { currentIndex = i; updateDisplay(); saveSession(); };
                     bar.appendChild(div);
                 } else if (!(/\s/.test(ch))) {
                     const upper = ch.toUpperCase();
@@ -671,6 +787,7 @@
             if (currentIndex < charList.length - 1) {
                 currentIndex++;
                 updateDisplay();
+                saveSession();
             }
         }
 
@@ -678,6 +795,7 @@
             if (currentIndex > 0) {
                 currentIndex--;
                 updateDisplay();
+                saveSession();
             }
         }
 
@@ -808,7 +926,10 @@
                 container.innerHTML = '<span style="color:#aaa;font-size:12px;">無法載入筆順資料</span>';
             }
         }
+
+        // Show resume prompt on load
+        showResumePrompt();
     </script>
-    <div style="text-align:center;padding:20px;font-size:11px;color:#bbb;">v1.7</div>
+    <div style="text-align:center;padding:20px;font-size:11px;color:#bbb;">v1.8</div>
 </body>
 </html>
